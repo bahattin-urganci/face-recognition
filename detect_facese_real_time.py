@@ -56,6 +56,7 @@ with tf.Graph().as_default():
 
         video_capture = cv2.VideoCapture(0)
         c = 0
+        
 
         # #video writer
         #fourcc = cv2.VideoWriter_fourcc(*'DIVX')
@@ -66,7 +67,7 @@ with tf.Graph().as_default():
         while True:
             ret, frame = video_capture.read()
 
-            frame = cv2.resize(frame, (0,0), fx=0.5, fy=0.5)    #resize frame (optional)
+            #frame = cv2.resize(frame, (0,0), fx=0.5, fy=0.5)    #resize frame (optional)
 
             curTime = time.time()+1    # calc fps
             timeF = frame_interval
