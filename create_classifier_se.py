@@ -25,7 +25,7 @@ with tf.Graph().as_default():
         print('Number of images: %d' % len(paths))
 
         print('Loading feature extraction model')
-        modeldir = './pre_model/20170511-185253.pb'
+        modeldir = './pre_model/20180408-102900/20180408-102900.pb'
         facenet.load_model(modeldir)
 
         images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
@@ -35,7 +35,7 @@ with tf.Graph().as_default():
 
         # Run forward pass to calculate embeddings
         print('Calculating features for images')
-        batch_size = 1000
+        batch_size = 512
         image_size = 160
         nrof_images = len(paths)
         nrof_batches_per_epoch = int(math.ceil(1.0 * nrof_images / batch_size))
