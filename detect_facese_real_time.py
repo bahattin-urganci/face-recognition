@@ -20,6 +20,42 @@ import pickle
 from sklearn.svm import SVC
 from sklearn.externals import joblib
 
+
+result_names = ""
+
+def findName():
+    global result_names
+    cropped.append(frame[bb[i][1]:bb[i][3], bb[i][0]:bb[i][2], :])
+    if len(cropped)>i:
+        try:
+            cropped[i] = facenet.flip(cropped[i], False)
+            scaled.append(misc.imresize(cropped[i], (image_size, image_size), interp='bilinear'))
+            scaled[i] = cv2.resize(scaled[i], (input_image_size,input_image_size), interpolation=cv2.INTER_CUBIC)
+            scaled[i] = facenet.prewhiten(scaled[i])
+            scaled_reshape.append(scaled[i].reshape(-1,input_image_size,input_image_size,3))
+            feed_dict = {images_placeholder: scaled_reshape[i], phase_train_placeholder: False}
+            emb_array[0, :] = sess.run(embeddings, feed_dict=feed_dict)
+            predictions = model.predict_proba(emb_array)
+            print(predictions)
+            best_class_indices = np.argmax(predictions, axis=1)
+            print(best_class_indices)
+            best_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices]
+            print(best_class_probabilities)
+
+            print('result: ', best_class_indices[0])
+            print(best_class_indices)
+            print(HumanNames)
+            for H_i in HumanNames:
+                print(H_i)
+                if len(HumanNames) >=best_class_indices[0]:                           
+                    if HumanNames[best_class_indices[0]] == H_i:
+                        result_names = HumanNames[best_class_indices[0]]
+                else:
+                    result_names = "bilinmiyor"
+        except :
+            print("birşey oldu")
+    pass
+
 print('Creating networks and loading parameters')
 with tf.Graph().as_default():
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.6)
@@ -64,13 +100,19 @@ with tf.Graph().as_default():
 
         print('Start Recognition!')
         prevTime = 0
+        sayac = 0
+        findTime = 0
         while True:
             ret, frame = video_capture.read()
 
             #frame = cv2.resize(frame, (0,0), fx=0.5, fy=0.5)    #resize frame (optional)
-
+            
             curTime = time.time()+1    # calc fps
             timeF = frame_interval
+
+            sec = curTime - prevTime
+            prevTime = curTime
+            fps = 1 / (sec)
 
             if (c % timeF == 0):
                 find_results = []
@@ -98,55 +140,25 @@ with tf.Graph().as_default():
                         bb[i][1] = det[i][1]
                         bb[i][2] = det[i][2]
                         bb[i][3] = det[i][3]
+                        cv2.rectangle(frame, (bb[i][0], bb[i][1]), (bb[i][2], bb[i][3]), (0, 255, 0), 2)    #boxing face
 
-                        # inner exception
+                        #plot result idx under box
+                        text_x = bb[i][0]
+                        text_y = bb[i][3] + 20
+
+                        #inner exception
                         if bb[i][0] <= 0 or bb[i][1] <= 0 or bb[i][2] >= len(frame[0]) or bb[i][3] >= len(frame):
                             print('face is inner of range!')
-                            continue
 
-                        cropped.append(frame[bb[i][1]:bb[i][3], bb[i][0]:bb[i][2], :])
-                        if len(cropped)>i:
-                            try:
-                                cropped[i] = facenet.flip(cropped[i], False)
-                                scaled.append(misc.imresize(cropped[i], (image_size, image_size), interp='bilinear'))
-                                scaled[i] = cv2.resize(scaled[i], (input_image_size,input_image_size),
-                                                       interpolation=cv2.INTER_CUBIC)
-                                scaled[i] = facenet.prewhiten(scaled[i])
-                                scaled_reshape.append(scaled[i].reshape(-1,input_image_size,input_image_size,3))
-                                feed_dict = {images_placeholder: scaled_reshape[i], phase_train_placeholder: False}
-                                emb_array[0, :] = sess.run(embeddings, feed_dict=feed_dict)
-                                predictions = model.predict_proba(emb_array)
-                                print(predictions)
-                                best_class_indices = np.argmax(predictions, axis=1)
-                                print(best_class_indices)
-                                best_class_probabilities = predictions[np.arange(len(best_class_indices)), best_class_indices]
-                                print(best_class_probabilities)
-                                cv2.rectangle(frame, (bb[i][0], bb[i][1]), (bb[i][2], bb[i][3]), (0, 255, 0), 2)    #boxing face
+                        if curTime - 3 > findTime:
+                            findName()
+                            findTime = time.time()
 
-                                #plot result idx under box
-                                text_x = bb[i][0]
-                                text_y = bb[i][3] + 20
-                                print('result: ', best_class_indices[0])
-                                print(best_class_indices)
-                                print(HumanNames)
-                                for H_i in HumanNames:
-                                    print(H_i)
-                                    if len(HumanNames) >=best_class_indices[0]:                           
-                                        if HumanNames[best_class_indices[0]] == H_i:
-                                            result_names = HumanNames[best_class_indices[0]]
-                                            cv2.putText(frame, result_names, (text_x, text_y), cv2.FONT_HERSHEY_COMPLEX_SMALL,
-                                                    1, (0, 0, 255), thickness=1, lineType=2)
-                                    else:
-                                         cv2.putText(frame, "bilinmiyor", (text_x, text_y), cv2.FONT_HERSHEY_COMPLEX_SMALL,
-                                                    1, (0, 0, 255), thickness=1, lineType=2)
-                            except :
-                                print("birşey oldu")
+                        cv2.putText(frame, result_names, (text_x, text_y), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), thickness=1, lineType=2)
                 else:
                     print('Unable to align')
 
-            sec = curTime - prevTime
-            prevTime = curTime
-            fps = 1 / (sec)
+
             str = 'FPS: %2.3f' % fps
             text_fps_x = len(frame[0]) - 150
             text_fps_y = 20
