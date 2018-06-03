@@ -21,10 +21,7 @@ from sklearn.svm import SVC
 from sklearn.externals import joblib
 
 
-result_names = ""
-
-def findName():
-    global result_names
+def findName(i):
     cropped.append(frame[bb[i][1]:bb[i][3], bb[i][0]:bb[i][2], :])
     if len(cropped)>i:
         try:
@@ -49,9 +46,9 @@ def findName():
                 print(H_i)
                 if len(HumanNames) >=best_class_indices[0]:                           
                     if HumanNames[best_class_indices[0]] == H_i:
-                        result_names = HumanNames[best_class_indices[0]]
+                        return HumanNames[best_class_indices[0]]
                 else:
-                    result_names = "bilinmiyor"
+                    return "bilinmiyor"
         except :
             print("birşey oldu")
     pass
@@ -100,8 +97,8 @@ with tf.Graph().as_default():
 
         print('Start Recognition!')
         prevTime = 0
-        sayac = 0
         findTime = 0
+        name = [""] * 100
         while True:
             ret, frame = video_capture.read()
 
@@ -140,21 +137,17 @@ with tf.Graph().as_default():
                         bb[i][1] = det[i][1]
                         bb[i][2] = det[i][2]
                         bb[i][3] = det[i][3]
-                        cv2.rectangle(frame, (bb[i][0], bb[i][1]), (bb[i][2], bb[i][3]), (0, 255, 0), 2)    #boxing face
-
-                        #plot result idx under box
-                        text_x = bb[i][0]
-                        text_y = bb[i][3] + 20
+                        cv2.rectangle(frame, (bb[i][0], bb[i][1]), (bb[i][2], bb[i][3]), (0, 255, 0), 2) #boxing face
 
                         #inner exception
                         if bb[i][0] <= 0 or bb[i][1] <= 0 or bb[i][2] >= len(frame[0]) or bb[i][3] >= len(frame):
                             print('face is inner of range!')
 
                         if curTime - 3 > findTime:
-                            findName()
+                            name[i] = findName(i)
                             findTime = time.time()
 
-                        cv2.putText(frame, result_names, (text_x, text_y), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), thickness=1, lineType=2)
+                        cv2.putText(frame, name[i], (bb[i][0], bb[i][3] + 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), thickness=1, lineType=2)
                 else:
                     print('Unable to align')
 
